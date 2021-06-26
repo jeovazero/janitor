@@ -1,8 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Janitor (req) where
 
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy.Char8 as LB
+import Network.HTTP.Client
+import Network.HTTP.Client.TLS
 
 req :: IO () 
 req = do
-    B.putStrLn "hello friend" 
+    manager <- newManager tlsManagerSettings
+
+    initialRequest <- parseRequest "https://api.github.com/users/octocat"
+    let request = initialRequest { requestHeaders = [("User-Agent", "haskell")] }
+    response <- httpLbs request manager
+
+    LB.putStrLn $ responseBody response
