@@ -18,7 +18,9 @@ executable janitor
   build-depends:       base,
                        bytestring,
                        http-client,
-                       http-client-tls
+                       http-client-tls,
+                       text,
+                       aeson
   default-language:    Haskell2010
 
 
