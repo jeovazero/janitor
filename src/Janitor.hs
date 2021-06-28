@@ -1,16 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Janitor (req) where
+module Janitor (readTweets) where
 
 import qualified Data.ByteString.Lazy.Char8 as LB
+import qualified Data.ByteString.Char8 as B
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
 
-req :: IO () 
-req = do
+baseV2 = "https://api.twitter.com/2"
+
+
+readTweets :: String -> String -> IO () 
+readTweets token userID = do
     manager <- newManager tlsManagerSettings
 
-    initialRequest <- parseRequest "https://api.github.com/users/octocat"
-    let request = initialRequest { requestHeaders = [("User-Agent", "haskell")] }
+    initialRequest <- parseRequest (concat [baseV2,"/users/",userID,"/tweets"])
+    let request = initialRequest {
+        requestHeaders = [
+            ("User-Agent", "haskell"),
+            ("Authorization", B.concat ["Bearer ",B.pack token])
+        ]
+    }
     response <- httpLbs request manager
 
     LB.putStrLn $ responseBody response
