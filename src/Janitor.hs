@@ -9,7 +9,7 @@ import Network.HTTP.Client.TLS
 baseV2 = "https://api.twitter.com/2"
 
 
-readTweets :: String -> String -> IO () 
+readTweets :: String -> String -> IO LB.ByteString 
 readTweets token userID = do
     manager <- newManager tlsManagerSettings
 
@@ -22,4 +22,4 @@ readTweets token userID = do
     }
     response <- httpLbs request manager
 
-    LB.putStrLn $ responseBody response
+    pure $ responseBody response
