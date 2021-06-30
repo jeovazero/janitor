@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Data.Tweets (decodeTweets) where
+module Data.Tweets (decodeTweets, TweetsData(..), Tweet(..)) where
 
 import Data.Aeson as A
 import Data.Text
