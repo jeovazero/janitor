@@ -20,7 +20,9 @@ executable janitor
                        http-client,
                        http-client-tls,
                        text,
-                       aeson
+                       aeson,
+                       cryptohash-sha1,
+                       base64-bytestring
   default-language:    Haskell2010
 
 
