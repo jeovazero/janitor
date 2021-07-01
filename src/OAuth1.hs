@@ -55,7 +55,7 @@ percentEncoding bs
 
 percentEncoding' bs current end chuncks =
     case (isEnd, Map.lookup (B.index bs (current - 1)) percentEncodingMap) of
-        (True, Just value) -> L.reverse (bs:addChunck value)
+        (True, Just value) -> L.reverse (addChunck value)
         (True, _) -> L.reverse (bs:chuncks)
         (False, Just value) ->
             percentEncoding' bs'' 1 end' (addChunck value)
@@ -67,3 +67,13 @@ percentEncoding' bs current end chuncks =
         (as,bs') = B.splitAt (current - 1) bs
         bs'' = B.drop 1 bs'
         addChunck c = c:as:chuncks
+
+parameterString =
+    B.intercalate "&"
+        . L.sort
+            . fmap (\(a,b) -> B.concat [percentEncoding a,"=", percentEncoding b])
+
+toUpperW8 = fromIntegral . ord . toUpper . chr . fromIntegral
+
+signatureBaseString method url parameters =
+    B.intercalate "&" [B.map toUpperW8 method,percentEncoding url,parameterString parameters]
