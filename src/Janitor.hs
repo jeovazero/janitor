@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-module Janitor (readTweets,verifyCredentials) where
+module Janitor (deleteTweet,readTweets,verifyCredentials) where
 
 import qualified Data.ByteString.Lazy.Char8 as LB
 import qualified Data.ByteString.Char8 as B
@@ -49,6 +49,35 @@ verifyCredentials oauthToken' oauthSecret' consumerKey' consumerSecret' = do
     print authHeader
 
     let request = initialRequest {
+        requestHeaders = [
+            ("User-Agent", "haskell"),
+            ("Authorization", authHeader)
+        ]
+    }
+    response <- httpLbs request manager
+
+    pure $ responseBody response
+
+deleteTweet :: String -> String -> String -> String -> String -> IO LB.ByteString 
+deleteTweet oauthToken' oauthSecret' consumerKey' consumerSecret' id' = do
+    manager <- newManager tlsManagerSettings
+
+    let url' = concat [baseV1,"/statuses/destroy/",id',".json"]
+    initialRequest <- parseRequest url'
+    
+    let params = OAuth1HeaderParams {
+        parameters = [],
+        method = "POST",
+        url = B.pack url',
+        oauthToken = B.pack oauthToken',
+        oauthSecret = B.pack oauthSecret',
+        consumerKey = B.pack consumerKey',
+        consumerSecret = B.pack consumerSecret'
+    }
+    authHeader <- oauth1Header params
+
+    let request = initialRequest {
+        method = "POST",
         requestHeaders = [
             ("User-Agent", "haskell"),
             ("Authorization", authHeader)
