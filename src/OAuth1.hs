@@ -116,7 +116,9 @@ oauth1Header (OAuth1HeaderParams {
     let signatureBase = signatureBaseString method url parameters'
     let signingKey = B.intercalate "&" $ fmap percentEncoding [consumerSecret,oauthSecret]
     let oauthSignature = encode $ hmac signingKey signatureBase
-    let allParameters = ("oauth_signature",oauthSignature):parameters'
-    print (signatureBase)
+    let allParameters =
+            fmap
+                (\(key,value) -> (key,B.concat ["\"",value,"\""]))
+                $ ("oauth_signature",oauthSignature):parameters'
 
     pure $ B.concat ["OAuth ",parameterString ", " allParameters]
