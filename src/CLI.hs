@@ -1,4 +1,10 @@
-module CLI (CLI(..),parseCLICmd,helpCLI,helpCLINotCmdError,helpCLINotCmdError) where
+module CLI (
+        CLI(..),
+        parseCLICmd,
+        helpCLI,
+        helpCLINotCmdError,
+        helpCLICmdNoArgsError
+    ) where
 
 data CLI
     = CLIRead
@@ -23,13 +29,13 @@ parseCLICmd (cmd:xs)
                 "deleteall" -> CLIDeleteAll
                 _           -> CLINotCmdError cmd
 
-helpCLINotCmdError arg =
+helpCLICmdNoArgsError arg =
     unlines
         [ "\"janitor " ++ arg ++ "\" accepts no arguments."
         , "See 'janitor help'"
         ]
 
-helpCmdErrorCLI arg =
+helpCLINotCmdError arg =
     unlines
         [ "\"" ++ arg ++ "\" is not a janitor command."
         , "See 'janitor help'"
