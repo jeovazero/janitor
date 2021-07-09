@@ -1,21 +1,79 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-module Janitor (deleteTweet,readTweets,verifyCredentials) where
+module Janitor (deleteTweet,readTweets,verifyCredentials,AccessTokens(..)) where
 
 import qualified Data.ByteString.Lazy.Char8 as LB
-import qualified Data.ByteString.Char8 as B
+import Data.ByteString.Char8 as B
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
+import Prelude as P
 import OAuth1 as O
 
+baseV1 = "https://api.twitter.com/1.1"
 baseV2 = "https://api.twitter.com/2"
+
+data AccessTokens = AccessTokens {
+        oauthToken :: ByteString,
+        oauthSecret :: ByteString,
+        consumerKey :: ByteString,
+        consumerSecret :: ByteString
+    }
+
+data APIV1Params = APIV1Params {
+        parameters :: [(ByteString,ByteString)],
+        method :: ByteString,
+        path :: ByteString,
+        accessTokens :: AccessTokens
+    }
+
+
+apiV1 :: ByteString -> APIV1Params -> IO LB.ByteString
+apiV1 base (APIV1Params {
+    parameters,
+    method,
+    path,
+    accessTokens = AccessTokens {
+        oauthToken,
+        oauthSecret,
+        consumerKey,
+        consumerSecret
+    }
+}) = do
+    manager <- newManager tlsManagerSettings
+
+    let url = B.append base path
+    let url' = B.unpack $ url 
+    initialRequest <- parseRequest url'
+    
+    let oauthParams = OAuth1HeaderParams {
+        parameters = parameters,
+        method = method,
+        url = url,
+        oauthToken = oauthToken,
+        oauthSecret = oauthSecret,
+        consumerKey = consumerKey,
+        consumerSecret = consumerSecret
+    }
+    authHeader <- oauth1Header oauthParams
+
+    let request = initialRequest {
+        method = method,
+        requestHeaders = [
+            ("User-Agent", "haskell"),
+            ("Authorization", authHeader)
+        ]
+    }
+    response <- httpLbs request manager
+
+    pure $ responseBody response
+
 
 readTweets :: String -> String -> IO LB.ByteString 
 readTweets token userID = do
     manager <- newManager tlsManagerSettings
 
-    initialRequest <- parseRequest (concat [baseV2,"/users/",userID,"/tweets"])
+    initialRequest <- parseRequest (P.concat [baseV2,"/users/",userID,"/tweets"])
     let request = initialRequest {
         requestHeaders = [
             ("User-Agent", "haskell"),
@@ -26,63 +84,25 @@ readTweets token userID = do
 
     pure $ responseBody response
 
-
-baseV1 = "https://api.twitter.com/1.1"
-
-verifyCredentials :: String -> String -> String -> String  -> IO LB.ByteString 
-verifyCredentials oauthToken' oauthSecret' consumerKey' consumerSecret' = do
-    manager <- newManager tlsManagerSettings
-
-    let url' = concat [baseV1,"/account/verify_credentials.json"]
-    initialRequest <- parseRequest url'
-    
-    let params = OAuth1HeaderParams {
+verifyCredentials :: AccessTokens -> IO LB.ByteString 
+verifyCredentials accessTokens = do
+    let params = APIV1Params {
         parameters = [],
         method = "GET",
-        url = B.pack url',
-        oauthToken = B.pack oauthToken',
-        oauthSecret = B.pack oauthSecret',
-        consumerKey = B.pack consumerKey',
-        consumerSecret = B.pack consumerSecret'
+        path = "/account/verify_credentials.json",
+        accessTokens = accessTokens
     }
-    authHeader <- oauth1Header params
-    print authHeader
 
-    let request = initialRequest {
-        requestHeaders = [
-            ("User-Agent", "haskell"),
-            ("Authorization", authHeader)
-        ]
-    }
-    response <- httpLbs request manager
-
-    pure $ responseBody response
-
-deleteTweet :: String -> String -> String -> String -> String -> IO LB.ByteString 
-deleteTweet oauthToken' oauthSecret' consumerKey' consumerSecret' id' = do
-    manager <- newManager tlsManagerSettings
-
-    let url' = concat [baseV1,"/statuses/destroy/",id',".json"]
-    initialRequest <- parseRequest url'
+    apiV1 baseV1 params
     
-    let params = OAuth1HeaderParams {
+deleteTweet :: AccessTokens -> String -> IO LB.ByteString 
+deleteTweet accessTokens id' = do
+    let path = B.concat ["/statuses/destroy/", B.pack id',".json"]
+
+    let params = APIV1Params {
         parameters = [],
         method = "POST",
-        url = B.pack url',
-        oauthToken = B.pack oauthToken',
-        oauthSecret = B.pack oauthSecret',
-        consumerKey = B.pack consumerKey',
-        consumerSecret = B.pack consumerSecret'
+        path = path,
+        accessTokens = accessTokens
     }
-    authHeader <- oauth1Header params
-
-    let request = initialRequest {
-        method = "POST",
-        requestHeaders = [
-            ("User-Agent", "haskell"),
-            ("Authorization", authHeader)
-        ]
-    }
-    response <- httpLbs request manager
-
-    pure $ responseBody response
+    apiV1 baseV1 params
