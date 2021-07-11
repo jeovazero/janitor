@@ -4,7 +4,8 @@ module PrettyTerm (
     applyTerm,
     textBox,
     paddingSingleLine,
-    packTextBox
+    packTextBox,
+    printTerm
 ) where
 
 import Data.Text as T
@@ -62,4 +63,3 @@ paddingLeft chunck = T.append chunck
 paddingRight chunck bs = T.append bs chunck
 
 paddingSingleLine term = padding (applyTerm (term "| ")) (applyTerm (term " |"))
-

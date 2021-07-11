@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module PrettyTweet (prettyTweet) where
+module PrettyTweet (prettyTweet,prettyDelete) where
 
 import PrettyTerm
 import Data.Text as T
@@ -30,3 +30,10 @@ prettyTweet size id = T.unlines
 
 printPrettyTweet :: Int -> Text -> Text -> IO ()
 printPrettyTweet size id = TIO.putStr . prettyTweet size id
+
+prettyDelete t action = do
+    printTerm [Red "Deleting Tweeet... ", Cyan "ID: ", Cyan t]
+    isOk <- action
+    case isOk of
+        True -> printTerm [Green " OK!\n"]
+        False -> printTerm [Red " Fail!\n"]
