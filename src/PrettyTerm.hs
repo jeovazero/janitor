@@ -7,8 +7,10 @@ module PrettyTerm (
     packTextBox
 ) where
 
-import Data.ByteString.Char8 as B8
+import Data.Text as T
+import Data.Text.IO as TIO
 import Data.List as L
+import Debug.Trace
 
 green = "\x1b[32m"
 cyan = "\x1b[36m"
@@ -17,61 +19,46 @@ reset = "\x1b[0m"
 
 data Term a = Red a | Cyan a | Green a | Normal a
 
-applyTerm :: Term ByteString -> ByteString
+applyTerm :: Term Text -> Text 
 applyTerm term =
     case term of
-        Red s    -> B8.concat [red,s,reset]
-        Cyan s   -> B8.concat [cyan,s,reset]
-        Green s  -> B8.concat [green,s,reset]
+        Red s    -> T.concat [red,s,reset]
+        Cyan s   -> T.concat [cyan,s,reset]
+        Green s  -> T.concat [green,s,reset]
         Normal s -> s
 
-printTerm :: [Term ByteString] -> IO ()
-printTerm = B8.putStr . B8.concat . fmap applyTerm
+printTerm :: [Term Text] -> IO ()
+printTerm = TIO.putStr . T.concat . fmap applyTerm
 
-indexMaybe :: ByteString -> Int -> Maybe Char
-indexMaybe bs n
-    | n < 0             = Nothing
-    | n >= B8.length bs = Nothing
-    | otherwise         = Just (B8.index bs n)
-
-fillRight :: Char -> Int -> ByteString -> ByteString
-fillRight char size bs
-    | size > len = B8.append bs (B8.replicate (size - len) char)
-    | otherwise  = bs
-    where len = B8.length bs
-
-textBox :: Int -> ByteString -> [ByteString]
-textBox size text = L.reverse $ (textBox' [] size text)
-
-textBox' acc size text =
-    case indexMaybe text size of
-        Just _ ->
-            let
-                index = case loop (size - 1) of
-                          Just n -> n + 1
-                          Nothing -> size + 1
-                (chunck,text') = B8.splitAt index text
-            in
-                textBox' ((fillRight ' ' size chunck):acc) size text' 
-          
-        Nothing -> (fillRight ' ' size text):acc
+textBox :: Int -> Text -> [Text]
+textBox size = 
+    fmap (T.unwords .  L.reverse)        
+        . L.concat
+        . fmap (L.reverse . loop [] [] 0 . T.words)
+        . T.lines
     where
-        loop n
-            | n < 0 = Nothing
-            | otherwise = case B8.index text n of
-                              ' ' -> Just n
-                              _   -> loop (n - 1)
+        loop [] ans _ [] = ans
+        loop acc ans sz []
+            | size - sz > 0 = ((T.replicate (size - sz - 1) " "):acc):ans
+            | otherwise = acc:ans
+        loop acc ans sz (x:xs) =
+            let
+                sz' = T.length x + sz + (if acc == [] then 0 else 1)
+                ans' = ((T.replicate (size - sz - 1) " "):acc):ans
+                ans'' = if size - sz > 0 then ans' else (acc:ans)
+            in
+                if sz' <= size
+                then loop (x:acc) ans sz' xs
+                else loop [x] ans'' (T.length x) xs
 
-packTextBox :: (ByteString -> Term ByteString) -> [ByteString] -> [ByteString]
-packTextBox term = paddingLeftTextBox (applyTerm (term "| "))
-    . paddingRightTextBox (applyTerm (term " |"))
+packTextBox :: (Text -> Term Text) -> [Text] -> [Text]
+packTextBox term = paddingLeftTextBox (applyTerm (term "  "))
 
-paddingLeftTextBox chunck = fmap (B8.append chunck)
+paddingLeftTextBox chunck = fmap (T.append chunck)
 
-paddingRightTextBox chunck = fmap (\bs -> B8.append bs chunck)
-
-padding cleft cright = (\bs -> B8.append bs cright) . B8.append cleft
-paddingLeft chunck = B8.append chunck
-paddingRight chunck bs = B8.append bs chunck
+padding cleft cright = (\bs -> T.append bs cright) . T.append cleft
+paddingLeft chunck = T.append chunck
+paddingRight chunck bs = T.append bs chunck
 
 paddingSingleLine term = padding (applyTerm (term "| ")) (applyTerm (term " |"))
+
