@@ -34,23 +34,24 @@ textBox :: Int -> Text -> [Text]
 textBox size = 
     fmap (T.unwords .  L.reverse)        
         . L.concat
-        . fmap (L.reverse . loop [] [] 0 . T.words)
+        . fmap (L.reverse . breakText size [] [] 0 . T.words)
         . T.lines
-    where
-        loop [] ans _ [] = ans
-        loop acc ans sz []
-            | size - sz > 0 = ((T.replicate (size - sz - 1) " "):acc):ans
-            | otherwise = acc:ans
-        loop acc ans sz (x:xs) =
-            let
-                sz' = T.length x + sz + (if acc == [] then 0 else 1)
-                ans' = ((T.replicate (size - sz - 1) " "):acc):ans
-                ans'' = if size - sz > 0 then ans' else (acc:ans)
-            in
-                if sz' <= size
-                then loop (x:acc) ans sz' xs
-                else loop [x] ans'' (T.length x) xs
 
+breakText size [] ans _ [] = ans
+breakText size acc ans sz []
+    | size - sz > 0 = ((T.replicate (size - sz - 1) " "):acc):ans
+    | otherwise = acc:ans
+breakText size acc ans sz (x:xs)
+    | lenx >= size && acc /= [] = breakText size [tk] ans'' size (dp:xs)
+    | sz' <= size  = breakText size (x:acc) ans sz' xs
+    | otherwise    = breakText size [x] ans'' lenx xs
+    where
+        lenx = T.length x
+        (tk,dp) = T.splitAt size x
+        sz' = lenx + sz + (if acc == [] then 0 else 1)
+        ans' = ((T.replicate (size - sz - 1) " "):acc):ans
+        ans'' = if size - sz > 0 then ans' else (acc:ans)
+              
 packTextBox :: (Text -> Term Text) -> [Text] -> [Text]
 packTextBox term = paddingLeftTextBox (applyTerm (term "  "))
 
