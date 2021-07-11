@@ -1,7 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-module Janitor (deleteTweet,readTweets,verifyCredentials,AccessTokens(..)) where
+module Janitor (
+        deleteTweet,
+        readTweets,
+        verifyCredentials,
+        AccessTokens(..)
+    ) where
 
 import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.ByteString.Char8 as B
@@ -11,7 +16,6 @@ import Prelude as P
 import OAuth1 as O
 
 baseV1 = "https://api.twitter.com/1.1"
-baseV2 = "https://api.twitter.com/2"
 
 data AccessTokens = AccessTokens {
         oauthToken :: ByteString,
@@ -68,22 +72,6 @@ apiV1 base (APIV1Params {
 
     pure $ responseBody response
 
-
-readTweets :: String -> String -> IO LB.ByteString 
-readTweets token userID = do
-    manager <- newManager tlsManagerSettings
-
-    initialRequest <- parseRequest (P.concat [baseV2,"/users/",userID,"/tweets"])
-    let request = initialRequest {
-        requestHeaders = [
-            ("User-Agent", "haskell"),
-            ("Authorization", B.concat ["Bearer ",B.pack token])
-        ]
-    }
-    response <- httpLbs request manager
-
-    pure $ responseBody response
-
 verifyCredentials :: AccessTokens -> IO LB.ByteString 
 verifyCredentials accessTokens = do
     let params = APIV1Params {
@@ -95,6 +83,17 @@ verifyCredentials accessTokens = do
 
     apiV1 baseV1 params
     
+readTweets :: AccessTokens -> IO LB.ByteString 
+readTweets accessTokens = do
+    let params = APIV1Params {
+        parameters = [],
+        method = "GET",
+        path = "/statuses/user_timeline.json",
+        accessTokens = accessTokens
+    }
+
+    apiV1 baseV1 params
+
 deleteTweet :: AccessTokens -> String -> IO LB.ByteString 
 deleteTweet accessTokens id' = do
     let path = B.concat ["/statuses/destroy/", B.pack id',".json"]
