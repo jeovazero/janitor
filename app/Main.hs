@@ -15,12 +15,14 @@ import Janitor as J
 import qualified Data.Text.IO as TIO
 import CLI
 import PrettyTweet
+import PrettyTerm
 
 prettyTweetV1 TweetV1{ t_id, text }
     = prettyTweet 36 t_id text
 
-prettyTweets tweets = do
-    TIO.putStrLn (T.unlines $ fmap prettyTweetV1 tweets)
+prettyTweets [] = printTerm [Cyan "Congratulations! There are no tweets!\n"]
+prettyTweets    = do
+    TIO.putStrLn . T.unlines . fmap prettyTweetV1
 
 getAccessTokens = do
     oauthToken <- lookupEnv "OAUTH_TOKEN"
@@ -38,7 +40,17 @@ getAccessTokens = do
             }
         _ -> pure Nothing
 
-deleteTweet accessTokens = do
+processRequest req decoder printer = do
+    result <- req
+
+    case result of
+        Right result' ->
+            case decoder result' of
+                Right result'' -> printer result''
+                Left err -> putStrLn err
+        Left result' -> print result'
+
+deleteTweet accessTokens tweetID = do
     putStrLn "Twitter ID:\n> "
     tweetID <- getLine
 
@@ -46,22 +58,14 @@ deleteTweet accessTokens = do
         Just tokens -> do
             result <- J.deleteTweet tokens tweetID
 
-            print $ LB8.unpack result
+            print result
         _ -> putStrLn "Missing env vars"
 
-verify accessTokens = do
-    result <- J.verifyCredentials accessTokens
+verify accessTokens =
+    processRequest (J.verifyCredentials accessTokens) decodeCredentials print
 
-    case decodeCredentials result of
-        Right credentials -> print credentials
-        Left err -> putStrLn err
-
-readTweetsV1 accessTokens = do 
-    result <- J.readTweets accessTokens
-
-    case decodeTweetsV1 result of
-        Right tweets -> prettyTweets tweets
-        Left err -> putStrLn err
+readTweetsV1 accessTokens = 
+    processRequest (J.readTweets accessTokens) decodeTweetsV1 prettyTweets
 
 main = do
     args <- getArgs
@@ -78,4 +82,3 @@ main = do
                 CLICmdNoArgsError arg -> putStr $ helpCLICmdNoArgsError arg 
         _ -> putStrLn "Missing env vars"
 
-    
