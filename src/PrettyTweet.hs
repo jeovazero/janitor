@@ -4,7 +4,6 @@ module PrettyTweet (prettyTweet) where
 import PrettyTerm
 import Data.Text as T
 import Data.Text.IO as TIO
-import Debug.Trace
 
 chunckBottom size box = box ++ (b:a:[])
     where
@@ -22,12 +21,12 @@ chunckId id' box = top:h:box
         h = paddingSingleLine Cyan $ T.append "id: " (applyTerm (Cyan id'))
 
 prettyTweet :: Int -> Text -> Text -> Text 
-prettyTweet size id box = T.unlines
+prettyTweet size id = T.unlines
     . chunckId id
     . chunckTop size
     . chunckBottom size
     . packTextBox Cyan
-    $ traceShow (textBox size box) (textBox size box)
+    . textBox size 
 
 printPrettyTweet :: Int -> Text -> Text -> IO ()
 printPrettyTweet size id = TIO.putStr . prettyTweet size id
