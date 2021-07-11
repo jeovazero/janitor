@@ -1,31 +1,26 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns #-}
 module Main where
 
 import System.Environment (getArgs,lookupEnv)
-import Data.Tweets
+import Data.Credentials
+import Data.TweetsV1
 import Data.List
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.ByteString.Lazy.Char8 as LB8
 import qualified Data.ByteString.Char8 as B8
 import Janitor as J
 import qualified Data.Text.IO as TIO
 import CLI
+import PrettyTweet
 
-prettyTweet tweet = result
-    where
-        tweetId = t_id tweet
-        tweetText = text tweet
-        result = T.concat [
-                "----\nid: ",
-                tweetId,
-                "\ntext:\n----\n\n",
-                tweetText,
-                "\n\n----"
-            ]
+prettyTweetV1 TweetV1{ t_id, text }
+    = prettyTweet 36 t_id text
 
 prettyTweets tweets = do
-    let tweetsData = t_data tweets
-    TIO.putStrLn (T.unlines $ fmap prettyTweet tweetsData)
+    TIO.putStrLn (T.unlines $ fmap prettyTweetV1 tweets)
 
 getAccessTokens = do
     oauthToken <- lookupEnv "OAUTH_TOKEN"
@@ -43,22 +38,6 @@ getAccessTokens = do
             }
         _ -> pure Nothing
 
-
-readTweets = do
-    token <- lookupEnv "TOKEN"
-    putStrLn "Twitter ID:\n> "
-    twitterID <- getLine
-
-    case token of
-        Just tk -> do
-            result <- J.readTweets tk twitterID
-
-            case decodeTweets result of
-                Right tweets -> prettyTweets tweets
-                Left err -> putStrLn err
-
-        _ -> putStrLn "Missing TOKEN or TWITTER_ID env var"
-
 deleteTweet accessTokens = do
     putStrLn "Twitter ID:\n> "
     tweetID <- getLine
@@ -72,7 +51,17 @@ deleteTweet accessTokens = do
 
 verify accessTokens = do
     result <- J.verifyCredentials accessTokens
-    print $ LB8.unpack result
+
+    case decodeCredentials result of
+        Right credentials -> print credentials
+        Left err -> putStrLn err
+
+readTweetsV1 accessTokens = do 
+    result <- J.readTweets accessTokens
+
+    case decodeTweetsV1 result of
+        Right tweets -> prettyTweets tweets
+        Left err -> putStrLn err
 
 main = do
     args <- getArgs
@@ -82,7 +71,7 @@ main = do
         Just tokens -> do
             case parseCLICmd args of
                 CLIHelp               -> putStr helpCLI
-                CLIRead               -> putStrLn "Not implemented" 
+                CLIRead               -> readTweetsV1 tokens 
                 CLIVerify             -> verify tokens
                 CLIDeleteAll          -> putStrLn "Not implemented"
                 CLINotCmdError arg    -> putStr $ helpCLINotCmdError arg
