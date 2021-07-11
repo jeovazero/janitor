@@ -20,6 +20,7 @@ executable janitor
   build-depends:       base,
                        bytestring,
                        http-client,
+                       http-types,
                        http-client-tls,
                        text,
                        aeson,

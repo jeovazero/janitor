@@ -12,6 +12,7 @@ import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.ByteString.Char8 as B
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS
+import Network.HTTP.Types
 import Prelude as P
 import OAuth1 as O
 
@@ -31,8 +32,9 @@ data APIV1Params = APIV1Params {
         accessTokens :: AccessTokens
     }
 
+type ApiResponse = IO (Either LB.ByteString LB.ByteString)
 
-apiV1 :: ByteString -> APIV1Params -> IO LB.ByteString
+apiV1 :: ByteString -> APIV1Params -> ApiResponse
 apiV1 base (APIV1Params {
     parameters,
     method,
@@ -70,9 +72,14 @@ apiV1 base (APIV1Params {
     }
     response <- httpLbs request manager
 
-    pure $ responseBody response
+    let status = responseStatus response
+    let response' = responseBody response
 
-verifyCredentials :: AccessTokens -> IO LB.ByteString 
+    pure $ case status == status200 of
+            True -> Right response'
+            False -> Left response'
+
+verifyCredentials :: AccessTokens -> ApiResponse 
 verifyCredentials accessTokens = do
     let params = APIV1Params {
         parameters = [],
@@ -83,7 +90,7 @@ verifyCredentials accessTokens = do
 
     apiV1 baseV1 params
     
-readTweets :: AccessTokens -> IO LB.ByteString 
+readTweets :: AccessTokens -> ApiResponse 
 readTweets accessTokens = do
     let params = APIV1Params {
         parameters = [],
@@ -94,7 +101,7 @@ readTweets accessTokens = do
 
     apiV1 baseV1 params
 
-deleteTweet :: AccessTokens -> String -> IO LB.ByteString 
+deleteTweet :: AccessTokens -> String -> ApiResponse
 deleteTweet accessTokens id' = do
     let path = B.concat ["/statuses/destroy/", B.pack id',".json"]
 
@@ -104,4 +111,5 @@ deleteTweet accessTokens id' = do
         path = path,
         accessTokens = accessTokens
     }
+
     apiV1 baseV1 params
