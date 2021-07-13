@@ -20,9 +20,9 @@ import PrettyTerm
 prettyTweetV1 TweetV1{ t_id, text }
     = prettyTweet 36 t_id text
 
+prettyTweets :: [TweetV1] -> IO ()
 prettyTweets [] = printTerm [Cyan "Congratulations! There are no tweets!\n"]
-prettyTweets    = do
-    TIO.putStrLn . T.unlines . fmap prettyTweetV1
+prettyTweets tweets  = TIO.putStrLn . T.unlines . fmap prettyTweetV1 $ tweets
 
 getAccessTokens = do
     oauthToken <- lookupEnv "OAUTH_TOKEN"
@@ -50,16 +50,26 @@ processRequest req decoder printer = do
                 Left err -> putStrLn err
         Left result' -> print result'
 
-deleteTweet accessTokens tweetID = do
-    putStrLn "Twitter ID:\n> "
-    tweetID <- getLine
+deleteTweet' accessTokens tid = do
+    result <- J.deleteTweet accessTokens (T.unpack tid)
+    pure $ case result of
+               Right _ -> True
+               Left _ -> False
 
-    case accessTokens of
-        Just tokens -> do
-            result <- J.deleteTweet tokens tweetID
+prettyDelete' accessTokens (TweetV1{ t_id }) = do
+    prettyDelete t_id (deleteTweet' accessTokens t_id)
 
-            print result
-        _ -> putStrLn "Missing env vars"
+deleteTweets accessTokens = do
+    response <- J.readTweets accessTokens
+
+    case response of
+        Right response' ->
+            case decodeTweetsV1 response' of
+                Right tweets -> do
+                    sequence_ $ fmap (prettyDelete' accessTokens) tweets
+                    putStrLn "All done!"
+                Left err -> putStrLn err
+        Left err -> print err
 
 verify accessTokens =
     processRequest (J.verifyCredentials accessTokens) decodeCredentials print
@@ -77,7 +87,7 @@ main = do
                 CLIHelp               -> putStr helpCLI
                 CLIRead               -> readTweetsV1 tokens 
                 CLIVerify             -> verify tokens
-                CLIDeleteAll          -> putStrLn "Not implemented"
+                CLIDeleteAll          -> deleteTweets tokens
                 CLINotCmdError arg    -> putStr $ helpCLINotCmdError arg
                 CLICmdNoArgsError arg -> putStr $ helpCLICmdNoArgsError arg 
         _ -> putStrLn "Missing env vars"
