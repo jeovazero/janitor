@@ -6,11 +6,12 @@ import Data.List as L
 import Data.Word
 import Data.Char
 import Data.ByteString as B
+import qualified Data.ByteString.Lazy as LB
 import Data.ByteString.Char8 as B8
 import Data.ByteString.Base64
 import Data.Time.Clock.POSIX
 import Data.Map.Strict as Map
-import Crypto.Hash.SHA1 (hmac)
+import Data.Digest.Pure.SHA (hmacSha1, bytestringDigest)
 
 data OAuth1HeaderParams = OAuth1HeaderParams {
         parameters :: [(ByteString,ByteString)],
@@ -91,7 +92,15 @@ toUpperW8 = fromIntegral . ord . toUpper . chr . fromIntegral
 numberToBytestring = B8.pack . show
 
 signatureBaseString method url parameters =
-    B.intercalate "&" [B.map toUpperW8 method,percentEncoding url,percentEncoding $ parameterString "&" parameters]
+    B.intercalate
+        "&"
+        [ B.map toUpperW8 method
+        , percentEncoding url
+        , percentEncoding $ parameterString "&" parameters
+        ]
+
+hmac key msg =
+    LB.toStrict . bytestringDigest $ hmacSha1 (LB.fromStrict key) (LB.fromStrict msg)
 
 oauth1Header (OAuth1HeaderParams {
     oauthToken,
@@ -115,7 +124,7 @@ oauth1Header (OAuth1HeaderParams {
     let parameters' = oauthParameters ++ parameters
     let signatureBase = signatureBaseString method url parameters'
     let signingKey = B.intercalate "&" $ fmap percentEncoding [consumerSecret,oauthSecret]
-    let oauthSignature = encode $ hmac signingKey signatureBase
+    let oauthSignature = encode $ hmac signingKey signatureBase 
     let allParameters =
             fmap
                 (\(key,value) -> (key,B.concat ["\"",value,"\""]))

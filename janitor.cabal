@@ -4,28 +4,37 @@ version:             0.1.0.0
 license-file:        LICENSE
 author:              jeovazero
 build-type:          Simple
+tested-with:         GHC == 8.10.4, GHC == 9.0.1
 
 library
   hs-source-dirs:      src
   exposed-modules:     Janitor,
                        OAuth1,
-                       CLI
-  build-depends:       base
-  default-language:    Haskell2010
-
-
-executable janitor
-  main-is:             Main.hs
-  hs-source-dirs:      src app
+                       CLI,
+                       PrettyTweet,
+                       PrettyTerm,
+                       Data.Credentials,
+                       Data.TweetsV1
   build-depends:       base,
+                       random,
+                       time,
+                       containers,
                        bytestring,
                        http-client,
                        http-types,
                        http-client-tls,
                        text,
                        aeson,
-                       cryptohash-sha1,
+                       SHA,
                        base64-bytestring
   default-language:    Haskell2010
 
+executable janitor
+  main-is:             Main.hs
+  hs-source-dirs:      app
+  build-depends:       base,
+                       janitor,
+                       bytestring,
+                       text
+  default-language:    Haskell2010
 
