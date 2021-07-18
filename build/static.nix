@@ -14,6 +14,6 @@ let
     };
   };
 
-  app = { name = "janitor"; src = ./.; };
+  app = { name = "janitor"; src = ../.; };
 in
   statify { haskellPackages = myHSPkgs; pkgs = pkgs;}  { app = app; }
