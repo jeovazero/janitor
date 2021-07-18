@@ -57,7 +57,7 @@ helpCLI =
         , ""
         , "    verify         Verify your credentials"
         , "    read           Show some of yours Tweets"
-        , "    deleteall      Delete all of yours Tweets"
+        , "    deleteall      Delete all Tweets that are returned by the read command"
         , "    help           Show this help text"
         , ""
         , ""
