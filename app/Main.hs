@@ -90,5 +90,7 @@ main = do
                 CLIDeleteAll          -> deleteTweets tokens
                 CLINotCmdError arg    -> putStr $ helpCLINotCmdError arg
                 CLICmdNoArgsError arg -> putStr $ helpCLICmdNoArgsError arg 
-        _ -> putStrLn "Missing env vars"
+        _ -> do
+            printTerm [Red "> Missing environment variables (tokens)\n\n"]
+            putStr helpCLI
 
