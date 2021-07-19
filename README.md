@@ -25,3 +25,14 @@ Usage: janitor COMMAND
 
     janitor verify
 ```
+
+![demo](./demo.gif)
+
+## Static Binary
+
+There is a fully static binary (for GNU/Linux) built with the GHC 9.0.1 (native bignum enabled) in the [releases page](https://github.com/jeovazero/janitor/releases).
+
+
+#
+
+> For fun by jeovazero
