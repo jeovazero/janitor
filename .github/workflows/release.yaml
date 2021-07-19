@@ -20,7 +20,7 @@ jobs:
         nix-env -i cachix -f '<nixpkgs>'
         cachix use ghc9-native-bignum
         nix-build build/artifact.nix
-        mv result/janitor.tar.gz ./janitor-${{ runner.os }}.tar.gz
+        cp result/janitor.tar.gz ./janitor-${{ runner.os }}.tar.gz
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
