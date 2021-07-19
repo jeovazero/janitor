@@ -1,7 +1,9 @@
 let
-  repo = builtins.fetchGit {
-    "url" = "git@github.com:jeovazero/nix-ghc901-native-bignum.git";
-    "rev" = "cd691a8965cfe531335a53bb0b8140eae2ebe825";
+  repo = builtins.fetchTarball {
+    name = "nix-ghc901-native-bignum";
+    url = "https://github.com/jeovazero/nix-ghc901-native-bignum/archive/cd691a8965cfe531335a53bb0b8140eae2ebe825.tar.gz";
+    # Hash obtained using `nix-prefetch-url --unpack <url>`
+    sha256 = "1apa4fsczz6hx91sms5zmsv89qdcdvmjsjn424ijad3gib30ynib";
   };
 
   inherit (import repo) statify flavors;
